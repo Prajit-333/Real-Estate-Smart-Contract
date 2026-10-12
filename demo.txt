@@ -1,0 +1,235 @@
+Complete project demonstration
+Use this account arrangement for the demo:
+
+Account	Role	Purpose
+Account #0	Admin	Deploys contract and changes verifier
+Account #1	Verifier	Approves or rejects properties
+Account #3	Owner/Seller	Registers property
+Account #4	Buyer	Purchases verified property
+Your deployment script already assigns Account #1 as the verifier:
+
+
+This behavior is implemented in deploy.js.
+
+Part 1: Start the blockchain
+Open Terminal 1 in F:\Blockchain:
+
+
+Keep this terminal running.
+
+Hardhat will display accounts such as:
+
+
+It will also display private keys. Import the required accounts into MetaMask:
+
+Account #0
+Account #1
+Account #3
+Account #4
+Use only the private keys shown by your own Hardhat node.
+Part 2: Deploy the contract
+Open Terminal 2:
+Expected output:
+The deployment updates:
+Important: if you restart npx hardhat node, deploy again because the local blockchain is reset.
+Part 3: Start the frontend
+Open Terminal 3:
+Open the Vite URL shown in the terminal, normally:
+In MetaMask, select:
+If the application displays Wrong network, click Switch to Hardhat Local.
+
+Demo Scenario A: Register a property
+Use Account #3
+Select Account #3 in MetaMask.
+Click Connect Wallet.
+Open My workspace.
+Enter:
+
+Click Register property.
+Confirm the transaction.
+Explain to your ma'am:
+
+Account #3 is registering the property. The 5 ETH is only recorded as the asking price. Account #3 pays only the gas fee for this registration transaction.
+
+The property should appear with:
+
+
+At this point, no 5 ETH should be held by the contract.
+
+Demo Scenario B: Reject and resubmit a property
+This demonstrates the rejection workflow.
+
+Switch to Account #1
+Select Account #1 in MetaMask.
+Refresh the page or reconnect the wallet.
+Open Review queue.
+Property #1 should appear as Pending.
+Click Reject.
+Confirm the transaction.
+The property should now show:
+
+
+Explain:
+
+The verifier rejected the document. The owner can correct the document hash and submit it again.
+
+Switch back to Account #3
+Select Account #3.
+Open My workspace.
+Click Resubmit document.
+Enter:
+
+Confirm the transaction.
+The state should return to:
+
+
+This function is implemented in:
+
+
+Demo Scenario C: Verify the property
+Switch to Account #1
+Select Account #1.
+Open Review queue.
+Confirm that property #1 is Pending.
+Click Approve.
+Confirm the transaction.
+The property should now show:
+
+
+Explain:
+
+Only the configured verifier can approve a property. Once approved, the property becomes available in the marketplace.
+
+The verifier restriction is enforced by:
+
+
+Demo Scenario D: Purchase the property
+Switch to Account #4
+Select Account #4 in MetaMask.
+Click Connect Wallet or refresh the page.
+Open Marketplace.
+Find property #1.
+Click:
+
+MetaMask will show:
+
+Confirm the transaction.
+This is the point where the actual 5 ETH is paid.
+
+The frontend sends:
+
+
+The contract requires:
+
+
+After a successful purchase, the property should show:
+
+
+The seller, Account #3, receives the 5 ETH automatically.
+
+Explain:
+
+The buyer paid exactly 5 ETH. The smart contract transferred ownership to Account #4 and paid the seller Account #3 in the same transaction.
+
+Demo Scenario E: Show that the owner cannot buy their own property
+To demonstrate the security rule:
+
+Register another property using Account #3.
+Have Account #1 verify it.
+Switch back to Account #3.
+Try to buy the same property.
+The transaction should fail with:
+
+
+This rule comes from:
+
+
+Demo Scenario F: Show exact payment validation
+To demonstrate that the contract rejects an incorrect payment:
+
+Register a property priced at 2 ETH.
+Have the verifier approve it.
+Use Account #4 to attempt a purchase.
+If testing directly from the console, send 1 ETH instead of 2 ETH.
+The transaction should fail with:
+
+
+The buyer must send exactly the listed property price.
+
+Demo Scenario G: Change the verifier
+This demonstrates the admin function.
+
+Use Account #0
+Select Account #0.
+Open My workspace.
+Locate Verifier account.
+Enter the address of another Hardhat account, for example Account #2.
+Click Update verifier.
+Confirm the transaction.
+Now:
+
+
+Demonstrate the restriction:
+
+Account #1 can no longer approve properties.
+Account #2 can approve properties.
+Only the admin can call:
+
+
+Recommended live demo order
+For a smooth presentation, use this order:
+
+Start Hardhat node.
+Deploy the contract.
+Start the frontend.
+Connect Account #3.
+Register property:
+
+Show that only gas is paid during registration.
+Switch to Account #1.
+Reject the property.
+Switch to Account #3.
+Resubmit the corrected document hash.
+Switch to Account #1.
+Approve the property.
+Switch to Account #4.
+Buy the property for 5 ETH.
+Show that ownership changes to Account #4.
+Show that Account #3 receives the sale amount.
+Show the Activity tab with:
+PropertyRegistered
+PropertyRejected
+PropertyReRegistered
+PropertyVerified
+PaymentDeposited
+OwnershipTransferred
+Demonstrate changing the verifier from Account #0.
+Important note about the refund function
+The contract contains:
+
+
+However, a normal purchase usually transfers the money directly to the seller and changes the property to Transferred. The refund path is intended for a special case where the seller cannot receive ETH and the automatic payout fails.
+
+Therefore, it may not be possible to demonstrate refundBuyer() using only normal externally owned Hardhat accounts. You can explain it during the presentation as an emergency recovery path:
+
+If payment reaches the vault but seller payout fails, the property remains in the Paid state and the verifier can refund the buyer.
+
+The related implementation is in RealEstateVault.sol.
+
+What to show in the Activity tab
+At the end, open Activity and explain that every important operation creates an on-chain event:
+
+Event	Meaning
+PropertyRegistered	Owner registered a new property
+PropertyRejected	Verifier rejected the documents
+PropertyReRegistered	Owner submitted a corrected document hash
+PropertyVerified	Verifier approved the property
+PaymentDeposited	Buyer sent the exact purchase amount
+OwnershipTransferred	Ownership changed and seller was paid
+VerifierChanged	Admin changed the verifier
+The event display is implemented in App.jsx.
+
+Short explanation for the payment issue
+You can state:
+
+Registration does not transfer the sale price. It only stores the document hash and price on-chain. MetaMask still charges gas because registering is a blockchain transaction. The actual property amount is transferred only during the purchase step after verifier approval.
